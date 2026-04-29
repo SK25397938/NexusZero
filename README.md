@@ -2,6 +2,11 @@
 
 NexusZero is a state-of-the-art logistics platform designed to optimize global supply chain routing using multi-agent artificial intelligence. It balances complex trade-offs between speed, cost, and environmental impact to provide Pareto-optimal solutions for modern trade lanes.
 
+## 📺 Project Demo
+Watch the NexusZero demo video to see the platform in action:
+[**Watch Demo Video on Google Drive**](https://drive.google.com/file/d/1JTuBTwigSRAmN7-7ltXTzYSxf3_y5f79/view?usp=drivesdk)
+
+
 ## Key Features
 
 - **Multi-Agent AI Decision System**: A collaborative AI environment featuring specialized agents (Operations, Finance, and Sustainability) that negotiate to reach the most balanced routing decisions.
