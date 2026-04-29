@@ -439,9 +439,8 @@ AI optimizing...
 
         let map;
         let routeLayers = [];
-        const API_BASE_URL = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" 
-            ? "http://localhost:8000" 
-            : "https://sunny-youthfulness-production-9f68.up.railway.app";
+        let isStormActive = false;
+        const API_BASE_URL = "https://sunny-youthfulness-production-9f68.up.railway.app";
 
         const inputs = {
             start: document.getElementById('startPoint'),
