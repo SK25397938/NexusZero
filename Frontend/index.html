@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus-Zero | Intelligent Route Orchestrator</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary: #0f172a;
+            --secondary: #3b82f6;
+            --accent: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --bg-light: #f8fafc;
+            --surface: #ffffff;
+            --border: #e2e8f0;
+            --text-main: #334155;
+            --text-muted: #64748b;
+            --radius: 12px;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-light);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        header {
+            background: var(--surface);
+            padding: 1rem 2rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 70px;
+            z-index: 1000;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            font-size: 1.25rem;
+            color: var(--primary);
+        }
+
+        .brand i { color: var(--secondary); }
+
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .status-badge {
+            font-size: 0.85rem;
+            padding: 4px 12px;
+            border-radius: 20px;
+            background: #dbeafe;
+            color: #1e40af;
+            font-weight: 600;
+        }
+
+        .btn-chart-toggle {
+            border: 1px solid var(--border);
+            background: var(--bg-light);
+            color: var(--text-main);
+            padding: 6px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 0.85rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-chart-toggle:hover {
+            border-color: var(--secondary);
+            color: var(--secondary);
+        }
+
+        main {
+            display: flex;
+            flex: 1;
+            height: calc(100vh - 70px);
+        }
+
+        aside {
+            width: 380px;
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            padding: 1.5rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            z-index: 900;
+        }
+
+        section h2 {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+            border-bottom: 2px solid var(--bg-light);
+            padding-bottom: 0.5rem;
+        }
+
+        .control-group { display: flex; flex-direction: column; gap: 0.75rem; }
+        
+        label { font-size: 0.85rem; font-weight: 600; }
+        
+        select, input[type="text"] {
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font-family: inherit;
+            background: var(--bg-light);
+        }
+
+        .sliders-container { display: flex; flex-direction: column; gap: 1.2rem; }
+
+        .slider-item { position: relative; }
+        
+        .slider-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 0.85rem;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            background: #cbd5e1;
+            border-radius: 5px;
+            outline: none;
+            -webkit-appearance: none;
+            cursor: pointer;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--secondary);
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+        #speedRange::-webkit-slider-thumb { background: var(--danger); }
+        #costRange::-webkit-slider-thumb { background: var(--warning); }
+        #carbonRange::-webkit-slider-thumb { background: var(--accent); }
+
+        .risk-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #fef2f2;
+            padding: 1rem;
+            border-radius: var(--radius);
+            border: 1px solid #fee2e2;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .risk-toggle.active {
+            background: #fee2e2;
+            border-color: var(--danger);
+        }
+        .risk-toggle.active .status-text { color: var(--danger); font-weight: bold; }
+
+        #map-container {
+            flex: 1;
+            position: relative;
+        }
+        #map { width: 100%; height: 100%; }
+
+        .stats-overlay {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(5px);
+            padding: 1.5rem;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            width: 320px;
+            z-index: 800;
+            border: 1px solid var(--border);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .stat-card {
+            background: var(--bg-light);
+            padding: 0.75rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-card h4 { font-size: 0.7rem; color: var(--text-muted); margin-bottom: 0.25rem; }
+        .stat-card .value { font-size: 1.1rem; font-weight: 700; color: var(--primary); }
+        .stat-card .delta { font-size: 0.7rem; margin-top: 4px; display: block; }
+        .delta.positive { color: var(--accent); }
+        .delta.negative { color: var(--danger); }
+
+        .chart-overlay {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: var(--surface);
+            padding: 1rem;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            width: 350px;
+            height: 250px;
+            z-index: 800;
+            border: 1px solid var(--border);
+        }
+        .chart-overlay h3 { font-size: 0.85rem; margin-bottom: 0.5rem; text-align: center; }
+
+        #toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--primary);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-size: 0.9rem;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            z-index: 2000;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        #toast.show { opacity: 1; bottom: 40px; }
+
+        @media (max-width: 1024px) {
+            main { flex-direction: column; overflow-y: auto; height: auto; }
+            aside { width: 100%; height: auto; border-right: none; border-bottom: 1px solid var(--border); }
+            #map-container { height: 500px; }
+            .stats-overlay, .chart-overlay { position: relative; top: 0; right: 0; width: 100%; margin-bottom: 1rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="brand">
+            <i class="fa-solid fa-earth-americas"></i>
+            Nexus-Zero
+        </div>
+        <div class="header-controls">
+            <div class="status-badge">
+                <i class="fa-solid fa-server"></i> Optimization Engine: Active
+            </div>
+            <button class="btn-chart-toggle" id="chartToggleBtn">
+                <i class="fa-solid fa-chart-scatter"></i> <span>Hide Analysis</span>
+            </button>
+        </div>
+    </header>
+
+    <main>
+        <aside>
+            <section>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 2px solid var(--bg-light); padding-bottom: 0.5rem;">
+                    <h2 style="margin: 0; border: none; padding: 0; font-size: 0.9rem; font-weight: 700;">Nexus-Zero Copilot</h2>
+                    <div>
+                        <button id="simEventBtn" style="background: var(--warning); color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; font-weight: 600;"><i class="fa-solid fa-bolt"></i> Live Event</button>
+                        <button id="reportBtn" style="background: var(--primary); color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; font-weight: 600; margin-left: 5px;"><i class="fa-solid fa-file-pdf"></i> Report</button>
+                    </div>
+                </div>
+                <div id="chatHistory" style="height: 220px; overflow-y: auto; background: var(--bg-light); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.75rem; margin-bottom: 0.75rem; display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.8rem;">
+                    <div style="color: var(--text-muted); text-align: center; font-style: italic; margin-top: auto; margin-bottom: auto;">How can I optimize your route today?</div>
+                </div>
+                <div class="control-group" style="flex-direction: row; display: flex; gap: 0.5rem;">
+                    <input type="text" id="aiInput" style="flex: 1; border: 1px solid var(--border); border-radius: var(--radius); padding: 0.75rem; background: var(--bg-light); font-family: inherit; font-size: 0.85rem;" placeholder="Ask copilot...">
+                    <button id="aiBtn" style="background: var(--secondary); color: white; border: none; padding: 0 1rem; border-radius: var(--radius); cursor: pointer; font-weight: 600;"><i class="fa-solid fa-paper-plane"></i></button>
+                </div>
+            </section>
+
+            <section>
+                <h2>Route Configuration</h2>
+                <div class="control-group">
+                    <label>Origin</label>
+                    <select id="startPoint">
+                        <option value="CN_SHA">Shanghai (CN)</option>
+                        <option value="SG_SIN">Singapore (SG)</option>
+                        <option value="US_NYC">New York (US)</option>
+                        <option value="AE_DXB">Dubai (AE)</option>
+                    </select>
+                </div>
+                <div class="control-group" style="margin-top: 1rem;">
+                    <label>Destination</label>
+                    <select id="endPoint">
+                        <option value="NL_RTM">Rotterdam (NL)</option>
+                        <option value="UK_LON">London (UK)</option>
+                        <option value="DE_HAM">Hamburg (DE)</option>
+                    </select>
+                </div>
+            </section>
+
+            <section>
+                <h2>The "Brain" (Priorities)</h2>
+                <div class="sliders-container">
+                    
+                    <div class="slider-item">
+                        <div class="slider-header">
+                            <span style="color: var(--danger)"><i class="fa-solid fa-bolt"></i> Speed</span>
+                            <span id="speedVal">50%</span>
+                        </div>
+                        <input type="range" id="speedRange" min="0" max="100" value="50">
+                    </div>
+
+                    <div id="aiStatus" style="font-size:0.75rem; color:#64748b; margin-top:8px;">
+AI optimizing...
+</div>
+
+                    <div class="slider-item">
+                        <div class="slider-header">
+                            <span style="color: var(--warning)"><i class="fa-solid fa-coins"></i> Cost</span>
+                            <span id="costVal">50%</span>
+                        </div>
+                        <input type="range" id="costRange" min="0" max="100" value="50">
+                    </div>
+
+                    <div class="slider-item">
+                        <div class="slider-header">
+                            <span style="color: var(--accent)"><i class="fa-solid fa-leaf"></i> Carbon</span>
+                            <span id="carbonVal">50%</span>
+                        </div>
+                        <input type="range" id="carbonRange" min="0" max="100" value="50">
+                    </div>
+
+                </div>
+            </section>
+
+            <section>
+                <h2>Risk Factors (GNN-Lite)</h2>
+                <div class="risk-toggle" id="riskToggle">
+                    <div>
+                        <strong><i class="fa-solid fa-triangle-exclamation"></i> Simulate Storm Warning</strong>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top:4px;">Increases risk weight on Suez & Panama lanes</div>
+                    </div>
+                    <div class="status-text">OFF</div>
+                </div>
+            </section>
+        </aside>
+
+        <div id="map-container">
+            <div id="map"></div>
+
+            <div class="stats-overlay">
+                <h2>Route Optimization Results</h2>
+    
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h4>Total Time</h4>
+                        <div class="value" id="resTime">--</div>
+                        <span class="delta" id="deltaTime">vs fastest</span>
+                    </div>
+    
+                    <div class="stat-card">
+                        <h4>Total Cost</h4>
+                        <div class="value" id="resCost">--</div>
+                        <span class="delta" id="deltaCost">vs cheapest</span>
+                    </div>
+    
+                    <div class="stat-card" style="grid-column: span 2;">
+                        <h4>CO2 Emissions</h4>
+                        <div class="value" id="resCarbon">--</div>
+                        <span class="delta positive" id="deltaCarbon">Savings vs Avg</span>
+                    </div>
+                </div>
+    
+                <div style="margin-top:1rem;">
+                    <h3 style="font-size:0.85rem; margin-bottom:0.5rem;">Why this route?</h3>
+                    <ul id="whyList" style="font-size:0.8rem; color:var(--text-muted); padding-left:1rem;"></ul>
+                </div>
+    
+                <div style="margin-top:1rem;">
+                    <h3 style="font-size:0.85rem; margin-bottom:0.5rem;">Alternate Routes</h3>
+                    <div id="altRoutes" style="font-size:0.8rem; color:var(--text-muted); display:flex; flex-direction:column; gap:6px;"></div>
+                </div>
+            </div>
+    
+            <div class="chart-overlay" id="chartOverlay">
+                <button id="closeChart" style="
+                    position:absolute;
+                    top:8px;
+                    right:10px;
+                    border:none;
+                    background:none;
+                    font-size:16px;
+                    cursor:pointer;
+                    color:#64748b;
+                ">✕</button>
+                <h3>Pareto Front: Cost vs. Carbon</h3>
+                <canvas id="paretoChart"></canvas>
+            </div>
+        </div>
+    </main>
+
+    <div id="toast">Route Recalculated</div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        let nodes = {};
+        let edges = [];
+
+        const MAX_COST = 200;
+        const MAX_CO2 = 500;
+        const MAX_TIME = 30;
+
+        let map;
+        let routeLayers = [];
+        const API_BASE_URL = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" 
+            ? "http://localhost:8000" 
+            : "https://nexuszero-production.up.railway.app";
+
+        const inputs = {
+            start: document.getElementById('startPoint'),
+            end: document.getElementById('endPoint'),
+            speed: document.getElementById('speedRange'),
+            cost: document.getElementById('costRange'),
+            carbon: document.getElementById('carbonRange')
+        };
+        const displays = {
+            speed: document.getElementById('speedVal'),
+            cost: document.getElementById('costVal'),
+            carbon: document.getElementById('carbonVal')
+        };
+        const results = {
+            time: document.getElementById('resTime'),
+            cost: document.getElementById('resCost'),
+            carbon: document.getElementById('resCarbon'),
+            deltaTime: document.getElementById('deltaTime'),
+            deltaCost: document.getElementById('deltaCost'),
+            deltaCarbon: document.getElementById('deltaCarbon')
+        };
+
+        let currentDisruption = "";
+        let lastAgentDecision = null;
+        let lastResult = null;
+        
+        async function runAIAgent() {
+            const queryInput = document.getElementById('aiInput');
+            const query = queryInput.value;
+            if(!query && !currentDisruption) {
+                showToast("Please enter a request");
+                return;
+            }
+            
+            const chatHistory = document.getElementById('chatHistory');
+            
+            if (query) {
+                const userMsg = document.createElement('div');
+                userMsg.style.cssText = "background: var(--primary); color: white; padding: 8px 12px; border-radius: 12px 12px 0 12px; align-self: flex-end; max-width: 85%;";
+                userMsg.innerText = query;
+                if(chatHistory.children[0].innerText.includes("How can I")) chatHistory.innerHTML = "";
+                chatHistory.appendChild(userMsg);
+                queryInput.value = "";
+                chatHistory.scrollTop = chatHistory.scrollHeight;
+            }
+            
+            showToast("AI analyzing request...");
+            
+            try {
+                const res = await fetch(`${API_BASE_URL}/agent_decision`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        user_input: query || "Resolve disruption",
+                        start: inputs.start.value,
+                        end: inputs.end.value,
+                        storm: isStormActive,
+                        disruption_event: currentDisruption
+                    })
+                });
+
+                currentDisruption = ""; // reset after passing
+
+                if (!res.ok) {
+                    showToast("AI Agent error ⚠️");
+                    return;
+                }
+                const data = await res.json();
+                
+                const agent = data.agent_decision;
+                const result = data.selected;
+                globalRoutes = data.all;
+                
+                lastAgentDecision = agent;
+                lastResult = result;
+                
+                if (agent.command.origin && nodes[agent.command.origin]) {
+                    inputs.start.value = agent.command.origin;
+                }
+                if (agent.command.destination && nodes[agent.command.destination]) {
+                    inputs.end.value = agent.command.destination;
+                }
+                
+                displays.speed.innerText = Math.round(agent.intent.speed * 100) + '%';
+                displays.cost.innerText = Math.round(agent.intent.cost * 100) + '%';
+                displays.carbon.innerText = Math.round(agent.intent.carbon * 100) + '%';
+                inputs.speed.value = agent.intent.speed * 100;
+                inputs.cost.value = agent.intent.cost * 100;
+                inputs.carbon.value = agent.intent.carbon * 100;
+
+                const aiStatus = document.getElementById("aiStatus");
+                if (aiStatus) {
+                    aiStatus.innerHTML = `<strong style="color:var(--primary)">AI Confidence: ${agent.confidence.score}%</strong><br/>${agent.confidence.reason}`;
+                }
+                
+                await drawRoutes(data.all, result, inputs.start.value);
+
+                results.time.innerText = result.totalTime.toFixed(1) + ' days';
+                results.cost.innerText = '$' + result.totalCost.toFixed(0) + 'k';
+                results.carbon.innerText = result.totalCarbon.toFixed(0) + ' kg';
+
+                results.deltaTime.innerText = `Delay: +${agent.prediction.delay_percent}%`;
+                results.deltaTime.className = "delta negative";
+                results.deltaCost.innerText = `Cost Shift: +${agent.prediction.cost_change_percent}%`;
+                results.deltaCost.className = "delta negative";
+                results.deltaCarbon.innerText = agent.risk_analysis.length > 0 ? `Risk: ${agent.risk_analysis[0].severity}` : "Risk: Low";
+                results.deltaCarbon.className = agent.risk_analysis.length > 0 ? "delta negative" : "delta positive";
+
+                if (agent.negotiation_log && agent.negotiation_log.length > 0) {
+                    for (const log of agent.negotiation_log) {
+                        const logMsg = document.createElement('div');
+                        let agentColor = "var(--text-muted)";
+                        let icon = "fa-user-tie";
+                        
+                        if(log.agent === "Eco") { agentColor = "var(--accent)"; icon = "fa-leaf"; }
+                        else if(log.agent === "Finance") { agentColor = "var(--warning)"; icon = "fa-coins"; }
+                        else if(log.agent === "Ops") { agentColor = "var(--danger)"; icon = "fa-truck-fast"; }
+                        
+                        logMsg.style.cssText = `background: var(--surface); border-left: 3px solid ${agentColor}; padding: 6px 10px; border-radius: 4px; align-self: flex-start; max-width: 90%; font-size: 0.75rem; margin-left: 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);`;
+                        logMsg.innerHTML = `<strong style="color:${agentColor}"><i class="fa-solid ${icon}"></i> ${log.agent} Agent</strong><br/>${log.message}`;
+                        
+                        chatHistory.appendChild(logMsg);
+                        chatHistory.scrollTop = chatHistory.scrollHeight;
+                        
+                        await new Promise(r => setTimeout(r, 600));
+                    }
+                }
+
+                const aiMsg = document.createElement('div');
+                aiMsg.style.cssText = "background: var(--surface); border: 1px solid var(--border); padding: 8px 12px; border-radius: 12px 12px 12px 0; align-self: flex-start; max-width: 95%;";
+                aiMsg.innerHTML = `<strong style="color:var(--secondary)"><i class="fa-solid fa-robot"></i> Copilot Decision</strong><br/>${agent.explanation}`;
+                chatHistory.appendChild(aiMsg);
+                chatHistory.scrollTop = chatHistory.scrollHeight;
+                
+                if (agent.market_forecast) {
+                    await new Promise(r => setTimeout(r, 600));
+                    const tipMsg = document.createElement('div');
+                    tipMsg.style.cssText = "background: linear-gradient(135deg, #f3e8ff, #e0e7ff); border: 1px solid #c4b5fd; padding: 8px 12px; border-radius: 12px 12px 12px 0; align-self: flex-start; max-width: 95%; box-shadow: 0 2px 4px rgba(0,0,0,0.05);";
+                    tipMsg.innerHTML = `<strong style="color:#7c3aed">🔮 Pro Tip: Market Forecast</strong><br/>Book <strong>${agent.market_forecast.recommendation_date}</strong>. ${agent.market_forecast.rationale}`;
+                    chatHistory.appendChild(tipMsg);
+                    chatHistory.scrollTop = chatHistory.scrollHeight;
+                }
+
+            } catch (e) {
+                console.error(e);
+                showToast("Backend not responding ⚠️");
+            }
+        }
+        
+        function triggerLiveEvent() {
+            const events = [
+                "Suez Canal Blocked",
+                "Fuel Price Spike 15%",
+                "Severe Storms in Pacific"
+            ];
+            const evt = events[Math.floor(Math.random() * events.length)];
+            currentDisruption = evt;
+            
+            const chatHistory = document.getElementById('chatHistory');
+            if(chatHistory.children[0] && chatHistory.children[0].innerText.includes("How can I")) chatHistory.innerHTML = "";
+            
+            const evtMsg = document.createElement('div');
+            evtMsg.style.cssText = "background: #fee2e2; border: 1px solid var(--danger); color: var(--danger); padding: 8px 12px; border-radius: 8px; text-align: center; margin: 4px 0;";
+            evtMsg.innerHTML = `<strong>⚠️ LIVE EVENT: ${evt}</strong>`;
+            chatHistory.appendChild(evtMsg);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+            
+            runAIAgent();
+        }
+        
+        async function generateReport() {
+            if (!lastAgentDecision || !lastResult) {
+                showToast("Please run an AI optimization first.");
+                return;
+            }
+            
+            showToast("Generating Executive Report...");
+            
+            try {
+                const res = await fetch(`${API_BASE_URL}/generate_report`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        route_id: lastAgentDecision.selected_route,
+                        cost: lastResult.totalCost,
+                        time: lastResult.totalTime,
+                        carbon: lastResult.totalCarbon,
+                        scenario: currentDisruption || "None",
+                        explanation: lastAgentDecision.explanation,
+                        market_forecast: lastAgentDecision.market_forecast || {}
+                    })
+                });
+
+                if (!res.ok) {
+                    showToast("Failed to generate report.");
+                    return;
+                }
+                
+                const data = await res.json();
+                document.getElementById('reportContent').innerHTML = data.html;
+                document.getElementById('reportModal').style.display = 'flex';
+                
+            } catch (e) {
+                console.error(e);
+                showToast("Report generation failed.");
+            }
+        }
+
+        function initMap() {
+            map = L.map('map').setView([20, 0], 2);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; OpenStreetMap &copy; CartoDB',
+                subdomains: 'abcd',
+                maxZoom: 19
+            }).addTo(map);
+
+            for (let key in nodes) {
+                L.circleMarker([nodes[key].lat, nodes[key].lng], {
+                    radius: 6,
+                    fillColor: '#3b82f6',
+                    color: '#fff',
+                    weight: 2,
+                    opacity: 1,
+                    fillOpacity: 0.8
+                }).addTo(map).bindTooltip(nodes[key].name, {permanent: false, direction: 'top'});
+            }
+        }
+
+
+       let globalRoutes = [];
+
+async function updateCalculations() {
+    const startId = inputs.start.value;
+    const endId = inputs.end.value;
+    const wSpeed = parseInt(inputs.speed.value);
+    const wCost = parseInt(inputs.cost.value);
+    const wCarbon = parseInt(inputs.carbon.value);
+
+    displays.speed.innerText = wSpeed + '%';
+    displays.cost.innerText = wCost + '%';
+    displays.carbon.innerText = wCarbon + '%';
+
+    let data;
+
+    try {
+        const res = await fetch(`${API_BASE_URL}/optimize`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                start: startId,
+                end: endId,
+                speed: wSpeed,
+                cost: wCost,
+                carbon: wCarbon,
+                storm: isStormActive
+            })
+        });
+
+        if (!res.ok) {
+    showToast("Server error ⚠️");
+    return;
+}
+data = await res.json();
+    } catch (e) {
+        showToast("Backend not responding ⚠️");
+        return;
+    }
+
+    const result = data.selected;
+    const pareto = data.pareto;
+    const allRoutes = data.all;
+    const aiWeights = data.aiWeights;
+    const explanation = data.explanation;
+
+    globalRoutes = allRoutes;
+
+    if (!result || result.path.length === 0) {
+        showToast("No valid route found or Origin == Destination");
+        return;
+    }
+
+    if (aiWeights) {
+        displays.speed.innerText = Math.round(aiWeights.speed) + '%';
+        displays.cost.innerText = Math.round(aiWeights.cost) + '%';
+        displays.carbon.innerText = Math.round(aiWeights.carbon) + '%';
+
+        const aiStatus = document.getElementById("aiStatus");
+        if (aiStatus) {
+            aiStatus.innerText =
+                "AI weights → S:" + Math.round(aiWeights.speed) +
+                " C:" + Math.round(aiWeights.cost) +
+                " CO₂:" + Math.round(aiWeights.carbon);
+        }
+    }
+
+    await drawRoutes(allRoutes, result, startId);
+
+    results.time.innerText = result.totalTime.toFixed(1) + ' days';
+    results.cost.innerText = '$' + result.totalCost.toFixed(0) + 'k';
+    results.carbon.innerText = result.totalCarbon.toFixed(0) + ' kg';
+
+    results.deltaTime.innerText = "Dynamic route";
+    results.deltaCost.innerText = "Based on weights";
+    results.deltaCarbon.innerText = "Optimized result";
+
+    updateChart(result, pareto);
+
+    const whyList = document.getElementById("whyList");
+
+    if (explanation) {
+        whyList.innerHTML = explanation.map(r => `<li>${r}</li>`).join('');
+    } else {
+        whyList.innerHTML = "<li>Balanced trade-off across speed, cost and carbon</li>";
+    }
+
+    const altContainer = document.getElementById("altRoutes");
+
+    altContainer.innerHTML = allRoutes.slice(0, 3).map((r, i) => {
+        return `
+            <div onclick="selectRoute(${i})"
+                 style="padding:6px; border-radius:6px; background:var(--bg-light); cursor:pointer;">
+                <strong>Option ${i+1}</strong><br/>
+                Time: ${r.totalTime.toFixed(1)} days |
+                Cost: $${r.totalCost.toFixed(0)}k |
+                CO₂: ${r.totalCarbon.toFixed(0)} kg
+            </div>
+        `;
+    }).join('');
+}
+
+function selectRoute(index) {
+    const route = globalRoutes[index];
+
+    drawRoutes(globalRoutes, route, inputs.start.value);
+
+    results.time.innerText = route.totalTime.toFixed(1) + ' days';
+    results.cost.innerText = '$' + route.totalCost.toFixed(0) + 'k';
+    results.carbon.innerText = route.totalCarbon.toFixed(0) + ' kg';
+}
+
+async function drawRoutes(allRoutes, selectedRoute, startId) {
+    routeLayers.forEach(layer => map.removeLayer(layer));
+    routeLayers = [];
+
+    for (const route of allRoutes.slice(0, 3)) {
+
+        const isSelected = route === selectedRoute;
+
+        let hasSea = route.path.some(e => e.mode === "sea");
+        let hasAir = route.path.some(e => e.mode === "air");
+
+        let routeMode = hasSea && hasAir ? "hybrid" : hasSea ? "sea" : "air";
+
+        let color = '#94a3b8';
+
+        if (routeMode === "sea") {
+            color = isSelected ? "#10b981" : "#94a3b8";
+        } else if (routeMode === "air") {
+            color = isSelected ? "#ef4444" : "#94a3b8";
+        } else {
+            color = isSelected ? "#8b5cf6" : "#94a3b8";
+        }
+
+        for (let i = 0; i < route.path.length; i++) {
+            const edge = route.path[i];
+
+            const fromNode = nodes[edge.from];
+            const toNode = nodes[edge.to];
+
+            const direction = fromNode.lng < toNode.lng ? 1 : -1;
+            const curveOffset = (edge.mode === "sea" ? 8 : 4) * direction;
+
+            const midLat = (fromNode.lat + toNode.lat) / 2 + curveOffset;
+            const midLng = (fromNode.lng + toNode.lng) / 2;
+
+            const latlngs = [
+                [fromNode.lat, fromNode.lng],
+                [midLat, midLng],
+                [toNode.lat, toNode.lng]
+            ];
+
+            const layer = L.polyline(latlngs, {
+                color: color,
+                weight: isSelected ? 6 : 3,
+                opacity: isSelected ? 1 : 0.3,
+                dashArray: isSelected ? null : '6, 8'
+            }).addTo(map);
+
+            layer.on('click', () => {
+                drawRoutes(allRoutes, route, startId);
+
+                results.time.innerText = route.totalTime.toFixed(1) + ' days';
+                results.cost.innerText = '$' + route.totalCost.toFixed(0) + 'k';
+                results.carbon.innerText = route.totalCarbon.toFixed(0) + ' kg';
+            });
+
+            layer.on('mouseover', () => layer.setStyle({ weight: 7 }));
+            layer.on('mouseout', () => layer.setStyle({ weight: isSelected ? 6 : 3 }));
+
+            routeLayers.push(layer);
+        }
+    }
+
+    if (routeLayers.length > 0) {
+        const group = L.featureGroup(routeLayers);
+        map.fitBounds(group.getBounds(), { padding: [50, 50] });
+    }
+}
+
+        function initChart() {
+            const ctx = document.getElementById('paretoChart').getContext('2d');
+            chartInstance = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: []
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { title: { display: true, text: 'Cost ($k)' }, min: 0 },
+                        y: { title: { display: true, text: 'CO2 (kg)' }, min: 0 }
+                    },
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+        }
+
+        function updateChart(current, pareto) {
+    const paretoPoints = pareto.map(r => ({
+        x: r.totalCost,
+        y: r.totalCarbon
+    }));
+
+    chartInstance.data.datasets = [
+        {
+            label: 'Pareto Routes',
+            data: paretoPoints,
+            backgroundColor: '#3b82f6',
+            pointRadius: 6
+        },
+        {
+            label: 'Selected Route',
+            data: [{
+                x: current.totalCost,
+                y: current.totalCarbon
+            }],
+            backgroundColor: '#ef4444',
+            pointRadius: 10
+        }
+    ];
+
+    chartInstance.update();
+}
+
+        function setupListeners() {
+            const allInputs = document.querySelectorAll('input, select');
+            allInputs.forEach(input => {
+                input.addEventListener('change', () => {
+                    updateCalculations();
+                    showToast('Route recalculated based on new priorities');
+                });
+                input.addEventListener('input', () => {
+                    if(input.type === 'range') {
+                        displays[input.id.replace('Range','')].innerText = input.value + '%';
+                    }
+                });
+                input.addEventListener('mouseup', updateCalculations);
+            });
+
+            const riskToggle = document.getElementById('riskToggle');
+            riskToggle.addEventListener('click', () => {
+                isStormActive = !isStormActive;
+                riskToggle.classList.toggle('active');
+                riskToggle.querySelector('.status-text').innerText = isStormActive ? 'ACTIVE' : 'OFF';
+                
+                if(isStormActive) {
+                    showToast('⚠️ Storm Warning: High Risk active on Suez/Panama');
+                } else {
+                    showToast('Weather cleared: Normal routes restored');
+                }
+                updateCalculations();
+            });
+
+            const aiBtn = document.getElementById('aiBtn');
+            if (aiBtn) aiBtn.addEventListener('click', runAIAgent);
+            
+            const aiInput = document.getElementById('aiInput');
+            if (aiInput) aiInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') runAIAgent();
+            });
+
+            const simEventBtn = document.getElementById('simEventBtn');
+            if (simEventBtn) simEventBtn.addEventListener('click', triggerLiveEvent);
+            
+            const reportBtn = document.getElementById('reportBtn');
+            if (reportBtn) reportBtn.addEventListener('click', generateReport);
+
+            const chartOverlay = document.getElementById('chartOverlay');
+            const chartToggleBtn = document.getElementById('chartToggleBtn');
+            const closeChartBtn = document.getElementById('closeChart');
+
+            function toggleChart() {
+                const isHidden = chartOverlay.style.display === 'none';
+                if (isHidden) {
+                    chartOverlay.style.display = 'block';
+                    chartToggleBtn.innerHTML = '<i class="fa-solid fa-chart-scatter"></i> <span>Hide Analysis</span>';
+                } else {
+                    chartOverlay.style.display = 'none';
+                    chartToggleBtn.innerHTML = '<i class="fa-solid fa-chart-scatter"></i> <span>Show Analysis</span>';
+                }
+            }
+
+            chartToggleBtn.addEventListener('click', toggleChart);
+            closeChartBtn.addEventListener('click', toggleChart);
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.innerText = msg;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 3000);
+        }
+
+        window.addEventListener('load', async () => {
+            try {
+                const res = await fetch("http://localhost:8000/graph_data");
+                if (res.ok) {
+                    const data = await res.json();
+                    nodes = data.nodes;
+                    edges = data.edges;
+                    
+                    inputs.start.innerHTML = '';
+                    inputs.end.innerHTML = '';
+                    for (let key in nodes) {
+                        const opt1 = document.createElement('option');
+                        opt1.value = key;
+                        opt1.innerText = nodes[key].name;
+                        inputs.start.appendChild(opt1);
+                        
+                        const opt2 = document.createElement('option');
+                        opt2.value = key;
+                        opt2.innerText = nodes[key].name;
+                        inputs.end.appendChild(opt2);
+                    }
+                    if(nodes["CN_SHA"]) inputs.start.value = "CN_SHA";
+                    if(nodes["NL_RTM"]) inputs.end.value = "NL_RTM";
+                }
+            } catch (e) {
+                console.error("Failed to load graph data", e);
+            }
+
+            initMap();
+            initChart();
+            setupListeners();
+            updateCalculations();
+        });
+    </script>
+    
+    <div id="reportModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:3000; align-items:center; justify-content:center;">
+        <div style="background:white; width: 650px; max-width: 90%; max-height: 90vh; overflow-y:auto; border-radius:12px; padding:2.5rem; position:relative; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);">
+            <button onclick="document.getElementById('reportModal').style.display='none'" style="position:absolute; top:15px; right:15px; background:none; border:none; font-size:1.5rem; cursor:pointer; color:var(--text-muted);">&times;</button>
+            <div id="reportContent"></div>
+            <div style="margin-top:30px; text-align:right; border-top: 1px solid var(--border); padding-top: 15px;">
+                <button onclick="window.print()" style="background:var(--secondary); color:white; border:none; padding:10px 20px; border-radius:6px; cursor:pointer; font-weight:600;"><i class="fa-solid fa-print"></i> Print / Save PDF</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

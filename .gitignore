@@ -1,0 +1,10 @@
+venv/
+venv_nexus/
+__pycache__/
+*.pyc
+.env
+.env.*
+*.zip
+backend/test_*.json
+scratch/
+node_modules/
