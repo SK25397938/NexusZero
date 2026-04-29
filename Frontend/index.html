@@ -441,7 +441,7 @@ AI optimizing...
         let routeLayers = [];
         const API_BASE_URL = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" 
             ? "http://localhost:8000" 
-            : "https://nexuszero-production.up.railway.app";
+            : "https://sunny-youthfulness-production-9f68.up.railway.app";
 
         const inputs = {
             start: document.getElementById('startPoint'),
@@ -970,7 +970,7 @@ async function drawRoutes(allRoutes, selectedRoute, startId) {
 
         window.addEventListener('load', async () => {
             try {
-                const res = await fetch("http://localhost:8000/graph_data");
+                const res = await fetch(`${API_BASE_URL}/graph_data`);
                 if (res.ok) {
                     const data = await res.json();
                     nodes = data.nodes;
