@@ -4,11 +4,12 @@ NexusZero is a state-of-the-art logistics platform designed to optimize global s
 
 ## 📺 Project Demo
 <div align="center">
-  <video src="https://media.githubusercontent.com/media/SK25397938/NexusZero/main/demo_video.mp4" width="100%" controls autoplay loop muted>
-    Your browser does not support the video tag.
-  </video>
-  <p><i>If the video doesn't play automatically, you can also <a href="https://drive.google.com/file/d/1JTuBTwigSRAmN7-7ltXTzYSxf3_y5f79/view?usp=drivesdk">watch it on Google Drive</a>.</i></p>
+  <a href="https://drive.google.com/file/d/1JTuBTwigSRAmN7-7ltXTzYSxf3_y5f79/view?usp=drivesdk">
+    <img src="demo_preview.gif" alt="NexusZero Demo Preview" width="100%">
+  </a>
+  <p><i>The preview above autoplays. Click it to watch the <b>full high-quality demo</b> on Google Drive.</i></p>
 </div>
+
 
 
 
